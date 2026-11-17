@@ -158,6 +158,16 @@ def test_offline_parser_recognizes_common_printed_date_formats():
         assert parsed["invoice_date"] == "2026-11-17", printed_date
 
 
+def test_offline_parser_uses_final_repeated_total_after_tax():
+    from app.extract import offline_parse
+
+    text = "Invoice Total: 9900.00\nIGST 18%: 1782.00\nTotal: 11682.00"
+    parsed = offline_parse(text, 0.8)
+
+    assert parsed["tax_amount"] == 1782.0
+    assert parsed["total"] == 11682.0
+
+
 def test_gemini_rate_limit_waits_then_succeeds_without_model_hopping(monkeypatch):
     import httpx
     from pathlib import Path

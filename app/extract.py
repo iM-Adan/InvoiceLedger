@@ -339,7 +339,7 @@ def offline_parse(text: str, ocr_conf: float | None = None) -> dict:
         exp_total = round(expect + (tax or 0), 2) if expect is not None else None
         exact = [c for c in cands if exp_total is not None and abs(c[0] - exp_total) <= 1.0]
         plausible = [c for c in cands if c[0] >= floor_ - 0.01]
-        pick = exact[0] if exact else (plausible[0] if plausible else None)
+        pick = exact[0] if exact else (plausible[-1] if plausible else None)
         if pick:
             total, tlab = pick
         elif cands:
