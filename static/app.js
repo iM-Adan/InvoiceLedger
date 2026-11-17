@@ -138,15 +138,7 @@ function renderProcess(v) {
       <div class="types">Digital or scanned PDF, PNG, JPG or TIFF, up to 15 MB</div></div>
     </label>
     <div id="up-err"></div>`;
-  const eng = seg("engine-seg", [{ k: "auto", label: "Auto" }, { k: "gemini", label: "Gemini", disabled: !g, title: "Add GEMINI_API_KEY to enable" }, { k: "offline", label: "Offline" }],
-    state.engine, (k) => { state.engine = k; localStorage.setItem("engine", k); });
-  v.innerHTML = `
-    <div class="head">
-      <div><h1>Process an invoice</h1><p>${state.config.demo_mode ? "Try a prepared invoice and see every check behind its decision." : "Drop in a vendor invoice. You'll see every check as it runs and get a decision you can explain."}</p></div>
-      <div><div class="faint small" style="margin-bottom:6px">Read invoices with</div>${eng.html}</div>
-    </div>
-    ${uploadUi}
-
+  const demoUi = state.config.demo_mode ? `
     <div class="section-title"><h2>Demo invoices</h2><span class="faint small">${samples.length} prepared cases, each with the outcome it should get</span><span class="spacer"></span>
       <button class="btn sm" id="batch">Run all in order</button></div>
     <div class="filters" id="cats" style="margin-bottom:12px">${cats.map((c) => `<button class="filter ${c === state.cat ? "on" : ""}" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div>
@@ -156,20 +148,31 @@ function renderProcess(v) {
           <div class="f">${esc(s.category)} · <a href="/samples/${encodeURIComponent(s.file)}" target="_blank" rel="noopener" data-stop>${esc(s.file)}</a></div></div>
         <div class="expect">Expect <b class="${s.expected}">${WORD[s.expected] || s.expected}</b></div>
         <button class="btn sm primary go" data-run tabindex="-1">Run</button>
-      </div>`).join("")}</div>`;
+      </div>`).join("")}</div>` : "";
+  const eng = seg("engine-seg", [{ k: "auto", label: "Auto" }, { k: "gemini", label: "Gemini", disabled: !g, title: "Add GEMINI_API_KEY to enable" }, { k: "offline", label: "Offline" }],
+    state.engine, (k) => { state.engine = k; localStorage.setItem("engine", k); });
+  v.innerHTML = `
+    <div class="head">
+      <div><h1>Process an invoice</h1><p>${state.config.demo_mode ? "Try a prepared invoice and see every check behind its decision." : "Drop in a vendor invoice. You'll see every check as it runs and get a decision you can explain."}</p></div>
+      <div><div class="faint small" style="margin-bottom:6px">Read invoices with</div>${eng.html}</div>
+    </div>
+    ${uploadUi}
+    ${demoUi}`;
   eng.mount();
   const file = $("#file");
   if (file) file.addEventListener("change", () => file.files[0] && upload(file.files[0]));
-  const filterLib = () => $$(".lib-row").forEach((r) => r.classList.toggle("hide", state.cat !== "All" && r.dataset.cat !== state.cat));
-  filterLib();
-  $("#cats").addEventListener("click", (e) => { const b = e.target.closest(".filter"); if (!b) return; state.cat = b.dataset.c; $$(".filter").forEach((x) => x.classList.toggle("on", x === b)); filterLib(); });
-  $("#lib").addEventListener("click", (e) => { if (e.target.closest("[data-stop]")) return; const r = e.target.closest(".lib-row"); if (r) runSample(r.dataset.sample); });
-  $("#lib").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.classList.contains("lib-row")) runSample(e.target.dataset.sample); });
-  $("#batch").addEventListener("click", async () => {
-    const fd = new FormData(); fd.append("engine", state.engine);
-    try { const r = await api("/api/batch", { method: "POST", body: fd }); toast(`Queued ${r.run_ids.length} invoices`); location.hash = "#/dashboard"; }
-    catch (e) { toast(e.message); }
-  });
+  if (state.config.demo_mode) {
+    const filterLib = () => $$(".lib-row").forEach((r) => r.classList.toggle("hide", state.cat !== "All" && r.dataset.cat !== state.cat));
+    filterLib();
+    $("#cats").addEventListener("click", (e) => { const b = e.target.closest(".filter"); if (!b) return; state.cat = b.dataset.c; $$(".filter").forEach((x) => x.classList.toggle("on", x === b)); filterLib(); });
+    $("#lib").addEventListener("click", (e) => { if (e.target.closest("[data-stop]")) return; const r = e.target.closest(".lib-row"); if (r) runSample(r.dataset.sample); });
+    $("#lib").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.classList.contains("lib-row")) runSample(e.target.dataset.sample); });
+    $("#batch").addEventListener("click", async () => {
+      const fd = new FormData(); fd.append("engine", state.engine);
+      try { const r = await api("/api/batch", { method: "POST", body: fd }); toast(`Queued ${r.run_ids.length} invoices`); location.hash = "#/dashboard"; }
+      catch (e) { toast(e.message); }
+    });
+  }
 }
 
 /* ============================ Run (live) ============================ */

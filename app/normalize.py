@@ -73,12 +73,13 @@ def parse_money(s) -> float | None:
 
 DATE_PATTERNS = [
     r"\d{4}-\d{1,2}-\d{1,2}",
+    r"\d{4}[/.]\d{1,2}[/.]\d{1,2}",
     r"\d{1,2}[.\-]\d{1,2}[.\-]\d{4}",
     r"\d{1,2}/\d{1,2}/\d{2,4}",
-    r"\d{1,2}[ -](?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*[ -,]+\d{4}",
-    r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.? ?\d{1,2},? \d{4}",
+    r"\d{1,2}[ -](?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*[- ,]+\d{4}",
+    r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.? ?\d{1,2}(?:st|nd|rd|th)?,? \d{4}",
 ]
-DATE_RE = re.compile("(" + "|".join(DATE_PATTERNS) + ")", re.I)
+DATE_RE = re.compile(r"(?<!\d)(" + "|".join(DATE_PATTERNS) + r")(?!\d)", re.I)
 
 
 def parse_date(s: str | None, dayfirst: bool = False) -> tuple[date | None, bool]:
@@ -87,12 +88,21 @@ def parse_date(s: str | None, dayfirst: bool = False) -> tuple[date | None, bool
         return None, False
     t = s.strip().lower().replace(",", " ")
     t = re.sub(r"\s+", " ", t)
+    t = re.sub(r"(?<=\d)(?:st|nd|rd|th)\b", "", t)
     try:
         if re.fullmatch(r"\d{4}-\d{1,2}-\d{1,2}", t):
             return datetime.strptime(t, "%Y-%m-%d").date(), False
+        m = re.fullmatch(r"(\d{4})[/.](\d{1,2})[/.](\d{1,2})", t)
+        if m:
+            return date(int(m.group(1)), int(m.group(2)), int(m.group(3))), False
         m = re.fullmatch(r"(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})", t)
-        if m:  # European dotted format: dd.mm.yyyy
-            return date(int(m.group(3)), int(m.group(2)), int(m.group(1))), False
+        if m:
+            a, b, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            if a > 12:
+                return date(y, b, a), False
+            if b > 12:
+                return date(y, a, b), False
+            return date(y, b, a), a != b
         m = re.fullmatch(r"(\d{1,2})/(\d{1,2})/(\d{2,4})", t)
         if m:
             a, b, y = int(m.group(1)), int(m.group(2)), int(m.group(3))

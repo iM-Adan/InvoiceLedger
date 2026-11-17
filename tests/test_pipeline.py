@@ -150,6 +150,14 @@ def test_indian_gst_invoice_parsed_offline():
     assert [li["quantity"] for li in f["line_items"]] == [2000.0, 300.0]
 
 
+def test_offline_parser_recognizes_common_printed_date_formats():
+    from app.extract import offline_parse
+
+    for printed_date in ("17-Nov-2026", "November 17th, 2026", "2026/11/17"):
+        parsed = offline_parse(f"Invoice Date: {printed_date}", 0.8)
+        assert parsed["invoice_date"] == "2026-11-17", printed_date
+
+
 def test_gemini_rate_limit_waits_then_succeeds_without_model_hopping(monkeypatch):
     import httpx
     from pathlib import Path

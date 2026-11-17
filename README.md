@@ -43,7 +43,7 @@ Extra cases covered: scanned image-only PDF (`11`), phone photo PNG (`12`), an I
 
 Run the library in order (the **Run all 13 in order** button) and you get 7 approved, 4 held and 2 rejected. Each card says what it expects.
 
-The **Purchase orders** view can filter settled and unsettled POs. Expand a PO to mark each invoice paid or unpaid; a PO is settled only when it has invoices and all of them are marked paid. The prepared paid invoices start as settled, and **Reset demo data** restores those sample payment statuses. On the public sample-only demo, payment changes are shared with other visitors; do not use this unauthenticated demo to track real payments.
+The **Purchase orders** view can filter settled and unsettled POs. Expand a PO to mark each invoice paid or unpaid; a PO is settled only when it has invoices and all of them are marked paid. The prepared paid invoices start as settled, and **Reset demo data** restores those sample payment statuses. Payment changes are shared with other visitors; do not use this unauthenticated deployment to track real payments.
 
 ## 3. Run it locally
 
@@ -81,7 +81,7 @@ If you see per-minute 429s on your very first call, check the project's quota pa
 
 The Vercel deployment uses the root Dockerfile (including Tesseract), Neon Postgres for shared run history and the PO ledger, a private Vercel Blob store for invoice files, and one Vercel Daemon to process runs in order. The worker daemon runs only in production deployments.
 
-Vercel defaults to `DEMO_MODE=true`: the prepared sample invoices remain available, while arbitrary uploads are disabled because this demo has no user login. Do not turn uploads on for a public project unless access protection is configured.
+Vercel defaults to `DEMO_MODE=true`: the prepared sample invoices remain available, while arbitrary uploads are disabled. The current public deployment sets `DEMO_MODE=false`, which hides the sample invoice library and enables uploads up to 15 MB. Because there is no login, anyone can upload invoices; use access protection before accepting sensitive documents.
 
 1. Install the Vercel CLI and link this folder to a Vercel project:
 
