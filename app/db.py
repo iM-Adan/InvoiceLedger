@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 import sqlite3
 import threading
 from contextlib import contextmanager
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS ledger (
     run_id TEXT, source TEXT NOT NULL,
     vendor_id TEXT, invoice_number TEXT, invoice_number_norm TEXT, invoice_date TEXT,
     po_number TEXT, subtotal REAL, total REAL, lines_json TEXT, note TEXT,
+    payment_status TEXT NOT NULL DEFAULT 'unpaid',
     created_at TEXT NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ix_ledger_run_id ON ledger(run_id) WHERE run_id IS NOT NULL;
@@ -86,6 +88,30 @@ def _initialize_seed_data() -> None:
         raise
 
 
+def _migrate_ledger_payment_status() -> None:
+    if _is_postgres():
+        has_payment_status = _conn.execute(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.columns "
+            "WHERE table_name='ledger' AND column_name='payment_status')"
+        ).fetchone()["exists"]
+        if not has_payment_status:
+            _conn.execute("ALTER TABLE ledger ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'unpaid'")
+            _restore_seed_payment_statuses()
+        return
+
+    columns = {row["name"] for row in _conn.execute("PRAGMA table_info(ledger)").fetchall()}
+    if "payment_status" not in columns:
+        _conn.execute("ALTER TABLE ledger ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'unpaid'")
+        _restore_seed_payment_statuses()
+
+
+def _restore_seed_payment_statuses() -> None:
+    rows = _conn.execute("SELECT id, note FROM ledger WHERE source='seed'").fetchall()
+    for row in rows:
+        if re.search(r"\bpaid\b", row["note"] or "", re.IGNORECASE):
+            _conn.execute(_sql("UPDATE ledger SET payment_status='paid' WHERE id=?"), (row["id"],))
+
+
 def conn():
     global _conn
     with _lock:
@@ -105,12 +131,14 @@ def conn():
                 for statement in schema.split(";"):
                     if statement.strip():
                         _conn.execute(statement)
+                _migrate_ledger_payment_status()
         else:
             config.STORAGE_DIR.mkdir(parents=True, exist_ok=True)
             _conn = sqlite3.connect(config.DB_PATH, check_same_thread=False, isolation_level=None)
             _conn.row_factory = sqlite3.Row
             _conn.execute("PRAGMA journal_mode=WAL")
             _conn.executescript(SCHEMA)
+            _migrate_ledger_payment_status()
         _initialize_seed_data()
     return _conn
 
@@ -156,10 +184,11 @@ def seed_ledger() -> None:
             qty = sub / unit if po_line["billing_type"] == "quantity" else 0
             seed_lines.append({"po_line": int(po_line["line_no"]), "qty": qty, "amount": sub})
         _conn.execute(_sql(
-            "INSERT INTO ledger(run_id, source, vendor_id, invoice_number, invoice_number_norm, invoice_date, po_number, subtotal, total, lines_json, note, created_at)"
-            " VALUES (NULL,'seed',?,?,?,?,?,?,?,?,?,?)"),
+            "INSERT INTO ledger(run_id, source, vendor_id, invoice_number, invoice_number_norm, invoice_date, po_number, subtotal, total, lines_json, note, payment_status, created_at)"
+            " VALUES (NULL,'seed',?,?,?,?,?,?,?,?,?,?,?)"),
             (row["vendor_id"], row["invoice_number"], norm_invoice_number(row["invoice_number"]), row["invoice_date"],
-             row["po_number"], float(row["subtotal"]), float(row["total"]), json.dumps(seed_lines), row["note"], now_iso()),
+             row["po_number"], float(row["subtotal"]), float(row["total"]), json.dumps(seed_lines), row["note"],
+             row.get("payment_status", "unpaid"), now_iso()),
         )
 
 

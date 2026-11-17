@@ -83,7 +83,8 @@ def po_balance(po_number: str) -> dict:
         "po_total": po["total_amount"],
         "billed": billed,
         "remaining": round(po["total_amount"] - billed, 2),
-        "invoices": [{"invoice_number": e["invoice_number"], "subtotal": e["subtotal"], "date": e["invoice_date"], "source": e["source"]} for e in entries],
+        "invoices": [{"id": e["id"], "invoice_number": e["invoice_number"], "subtotal": e["subtotal"],
+                      "date": e["invoice_date"], "source": e["source"], "payment_status": e["payment_status"]} for e in entries],
         "line_billed": line_billed,
     }
 
@@ -94,5 +95,7 @@ def po_overview() -> list[dict]:
         b = po_balance(po["po_number"])
         v = vendor_by_id(po["vendor_id"])
         out.append({**{k: po[k] for k in ("po_number", "vendor_id", "issue_date", "status", "currency", "tax_rate", "description", "total_amount")},
-                    "vendor_name": v["name"] if v else po["vendor_id"], "lines": po["lines"], **{k: b[k] for k in ("billed", "remaining", "invoices")}})
+                    "vendor_name": v["name"] if v else po["vendor_id"], "lines": po["lines"],
+                    "settled": bool(b["invoices"]) and all(i["payment_status"] == "paid" for i in b["invoices"]),
+                    **{k: b[k] for k in ("billed", "remaining", "invoices")}})
     return out

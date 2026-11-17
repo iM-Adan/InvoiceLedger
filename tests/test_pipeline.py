@@ -87,6 +87,44 @@ def test_demo_mode_rejects_arbitrary_uploads(monkeypatch):
     assert response.status_code == 403
 
 
+def test_purchase_order_settlement_tracks_invoice_payment_status():
+    client.post("/api/reset")
+    pos = {p["po_number"]: p for p in client.get("/api/pos").json()}
+    settled_po = pos["PO-4499"]
+    unsettled_po = pos["PO-4501"]
+    invoice = settled_po["invoices"][0]
+
+    assert settled_po["settled"] is True
+    assert unsettled_po["settled"] is False
+    assert invoice["payment_status"] == "paid"
+
+    with db.transaction():
+        db.execute(
+            "INSERT INTO ledger(source, po_number, subtotal, total, lines_json, payment_status, created_at) "
+            "VALUES ('test', 'PO-4499', 10, 10, '[]', 'unpaid', ?)",
+            (db.now_iso(),),
+        )
+    pos = {p["po_number"]: p for p in client.get("/api/pos").json()}
+    extra_invoice = next(i for i in pos["PO-4499"]["invoices"] if i["payment_status"] == "unpaid")
+    assert pos["PO-4499"]["settled"] is False
+
+    response = client.put(f"/api/ledger/{extra_invoice['id']}/payment", params={"paid": "true"})
+    assert response.status_code == 200
+    pos = {p["po_number"]: p for p in client.get("/api/pos").json()}
+    assert pos["PO-4499"]["settled"] is True
+
+    response = client.put(f"/api/ledger/{invoice['id']}/payment", params={"paid": "false"})
+    assert response.status_code == 200
+    pos = {p["po_number"]: p for p in client.get("/api/pos").json()}
+    assert pos["PO-4499"]["settled"] is False
+    response = client.put(f"/api/ledger/{invoice['id']}/payment", params={"paid": "true"})
+    assert response.status_code == 200
+    pos = {p["po_number"]: p for p in client.get("/api/pos").json()}
+    assert pos["PO-4499"]["settled"] is True
+    assert client.put("/api/ledger/999999/payment", params={"paid": "true"}).status_code == 404
+    client.post("/api/reset")
+
+
 def test_corrupt_file_goes_to_manual_review(tmp_path):
     p = tmp_path / "broken.pdf"
     p.write_bytes(b"%PDF-1.4 this is not really a pdf")

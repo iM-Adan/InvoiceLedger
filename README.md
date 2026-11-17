@@ -43,6 +43,8 @@ Extra cases covered: scanned image-only PDF (`11`), phone photo PNG (`12`), an I
 
 Run the library in order (the **Run all 13 in order** button) and you get 7 approved, 4 held and 2 rejected. Each card says what it expects.
 
+The **Purchase orders** view can filter settled and unsettled POs. Expand a PO to mark each invoice paid or unpaid; a PO is settled only when it has invoices and all of them are marked paid. The prepared paid invoices start as settled, and **Reset demo data** restores those sample payment statuses. On the public sample-only demo, payment changes are shared with other visitors; do not use this unauthenticated demo to track real payments.
+
 ## 3. Run it locally
 
 ```bash

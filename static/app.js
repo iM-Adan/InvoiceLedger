@@ -44,7 +44,7 @@ const cleanHeadline = (d, h) => {
 };
 const SEV = { reject: "Reject", hold: "Hold", note: "Note", pass: "Pass" };
 
-const state = { config: null, engine: localStorage.getItem("engine") || "auto", filter: "ALL", cat: "All", search: "", es: null, timers: [], seen: {} };
+const state = { config: null, engine: localStorage.getItem("engine") || "auto", filter: "ALL", poFilter: "ALL", cat: "All", search: "", es: null, timers: [], seen: {} };
 
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2400); }
 function cleanup() { state.timers.forEach(clearInterval); state.timers = []; if (state.es) { state.es.close(); state.es = null; } }
@@ -455,24 +455,77 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") { $("#ligh
 
 /* ============================ Purchase orders ============================ */
 async function renderPOs(v) {
-  const pos = await api("/api/pos");
+  let pos = await api("/api/pos");
+  const filter = seg("pofilter", ["ALL", "SETTLED", "UNSETTLED"].map((k) => ({
+    k,
+    label: `${k === "ALL" ? "All POs" : k === "SETTLED" ? "Settled" : "Not settled"}<span class="count" data-po-count="${k}"></span>`,
+  })), state.poFilter, (k) => { state.poFilter = k; draw(); });
   v.innerHTML = `
-    <div class="head"><div><h1>Purchase orders</h1><p>The POs invoices are matched against. Each approved invoice draws down its PO's remaining balance. Select a PO to see its lines and invoices.</p></div></div>
-    <div class="surface po-list">${pos.map((p) => {
+    <div class="head"><div><h1>Purchase orders</h1><p>Each approved invoice draws down its PO's remaining balance. A PO is settled when all its invoices are marked paid.</p></div></div>
+    <div class="surface">
+      <div class="toolbar">${filter.html}</div>
+      <div class="po-list" id="po-list"></div>
+    </div>`;
+  filter.mount();
+
+  const expanded = new Set();
+  function draw() {
+    const counts = {
+      ALL: pos.length,
+      SETTLED: pos.filter((p) => p.settled).length,
+      UNSETTLED: pos.filter((p) => !p.settled).length,
+    };
+    $$("[data-po-count]").forEach((el) => { el.textContent = counts[el.dataset.poCount]; });
+    const visible = pos.filter((p) => state.poFilter === "ALL" ||
+      (state.poFilter === "SETTLED" ? p.settled : !p.settled));
+    $("#po-list").innerHTML = visible.length ? visible.map((p) => {
       const pct = p.total_amount ? Math.min(100, (100 * p.billed) / p.total_amount) : 0;
-      return `<div class="po" data-po="${esc(p.po_number)}">
-        <div class="po-row"><div class="pn">${esc(p.po_number)}${p.status !== "open" ? `<span class="closed-tag">${esc(p.status)}</span>` : ""}</div>
+      return `<div class="po${expanded.has(p.po_number) ? " open" : ""}" data-po="${esc(p.po_number)}">
+        <div class="po-row"><div class="pn">${esc(p.po_number)}<span class="chip ${p.settled ? "paid" : "unpaid"} po-settlement">${p.settled ? "Settled" : "Not settled"}</span>${p.status !== "open" ? `<span class="closed-tag">${esc(p.status)}</span>` : ""}</div>
           <div><div style="font-weight:550">${esc(p.vendor_name)}</div><div class="desc">${esc(p.description)}</div></div>
           <div class="bal"><div class="balance"><div class="track"><i class="this" data-w="${pct}%" style="${p.remaining <= 0.01 ? "background:#b9c1cb" : ""}"></i></div></div><div class="small faint" style="margin-top:6px">${Math.round(pct)}% billed</div></div>
           <div class="amt">${p.remaining < -0.005 ? `<b class="over">${money(-p.remaining, p.currency)} over</b>within tolerance` : `<b>${money(p.remaining, p.currency)}</b>left of ${money(p.total_amount, p.currency)}`}</div>${I.chev}</div>
         <div class="collapse"><div><div class="po-detail">
           <div class="tablewrap"><table><tr><th>Line</th><th class="r">Qty</th><th class="r">Unit price</th><th class="r">Line total</th></tr>
           ${p.lines.map((l) => `<tr><td>${esc(l.description)}</td><td class="r">${l.billing_type === "amount" ? "—" : num(l.quantity)}</td><td class="r">${l.billing_type === "amount" ? '<span class="faint">Milestone</span>' : money(l.unit_price, p.currency)}</td><td class="r">${money(l.line_total, p.currency)}</td></tr>`).join("")}</table></div>
-          <p class="small muted" style="margin:10px 0 0">${p.invoices.length ? "Invoices: " + p.invoices.map((i) => `${esc(i.invoice_number)} (${money(i.subtotal, p.currency)}${i.source === "seed" ? ", from ERP history" : ""})`).join(", ") : "No invoices billed yet."}${p.tax_rate ? ` Tax rate ${(p.tax_rate * 100).toFixed(2).replace(/\.?0+$/, "")}%.` : ""}</p>
+          <div class="po-invoices"><div class="small muted">Invoices${p.tax_rate ? ` · Tax rate ${(p.tax_rate * 100).toFixed(2).replace(/\.?0+$/, "")}%` : ""}</div>
+            ${p.invoices.length ? p.invoices.map((i) => `<div class="po-invoice">
+              <span><b>${esc(i.invoice_number || "Unnumbered invoice")}</b><span class="faint"> · ${money(i.subtotal, p.currency)}${i.source === "seed" ? " · ERP history" : ""}</span></span>
+              <span class="po-payment"><span class="chip ${i.payment_status}">${i.payment_status === "paid" ? "Paid" : "Unpaid"}</span>
+                <button class="btn sm quiet" data-payment-toggle data-ledger-id="${i.id}" data-paid="${i.payment_status === "paid"}">${i.payment_status === "paid" ? "Mark unpaid" : "Mark paid"}</button></span>
+            </div>`).join("") : `<p class="small muted" style="margin:8px 0 0">No invoices billed yet.</p>`}
+          </div>
         </div></div></div>
-      </div>`; }).join("")}</div>`;
+      </div>`;
+    }).join("") : `<div class="empty"><strong>No purchase orders match</strong>Choose another settlement filter.</div>`;
+  }
+  draw();
   requestAnimationFrame(() => requestAnimationFrame(() => $$(".balance .track i").forEach((i) => (i.style.width = i.dataset.w))));
-  $(".po-list").addEventListener("click", (e) => { const row = e.target.closest(".po-row"); if (row) row.parentElement.classList.toggle("open"); });
+  $("#po-list").addEventListener("click", async (e) => {
+    const button = e.target.closest("[data-payment-toggle]");
+    if (button) {
+      button.disabled = true;
+      try {
+        const paid = button.dataset.paid !== "true";
+        await api(`/api/ledger/${button.dataset.ledgerId}/payment?paid=${paid}`, { method: "PUT" });
+        pos = await api("/api/pos");
+        draw();
+        requestAnimationFrame(() => $$(".balance .track i").forEach((i) => (i.style.width = i.dataset.w)));
+      } catch (error) {
+        button.disabled = false;
+        toast(error.message);
+      }
+      return;
+    }
+    const row = e.target.closest(".po-row");
+    if (row) {
+      const card = row.parentElement;
+      const poNumber = card.dataset.po;
+      if (expanded.has(poNumber)) expanded.delete(poNumber);
+      else expanded.add(poNumber);
+      card.classList.toggle("open");
+    }
+  });
 }
 
 /* ============================ Rules ============================ */

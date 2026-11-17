@@ -220,6 +220,16 @@ def pos():
     return masterdata.po_overview()
 
 
+@app.put("/api/ledger/{ledger_id}/payment")
+def update_invoice_payment(ledger_id: int, paid: bool):
+    payment_status = "paid" if paid else "unpaid"
+    with db.transaction():
+        result = db.execute("UPDATE ledger SET payment_status=? WHERE id=?", (payment_status, ledger_id))
+        if result.rowcount == 0:
+            raise HTTPException(404, "Invoice not found")
+    return {"id": ledger_id, "payment_status": payment_status}
+
+
 @app.get("/api/vendors")
 def vendors():
     return masterdata.vendors()
