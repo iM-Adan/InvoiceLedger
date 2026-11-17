@@ -1,0 +1,12 @@
+storage/
+.venv/
+.git/
+.vercel/
+__pycache__/
+.pytest_cache/
+tests/
+docs/
+scripts/
+.env
+.env.*
+*.pyc

@@ -1,0 +1,93 @@
+[
+  {
+    "file": "01_happy_apex_INV-10482.pdf",
+    "title": "Clean invoice, exact PO match",
+    "category": "Happy path",
+    "expected": "APPROVE",
+    "story": "Text PDF, explicit PO reference, 4 itemised lines, separate 8% tax. Everything ties out."
+  },
+  {
+    "file": "02_tolerance_ok_brightline_BL-8120.pdf",
+    "title": "Small freight charge within tolerance",
+    "category": "Amount mismatch + tolerance",
+    "expected": "APPROVE",
+    "story": "Invoice is $12 over the PO because of an unplanned freight line. Within the 1% / $100 tolerance, so it auto-approves with a note."
+  },
+  {
+    "file": "03_tolerance_breach_brightline_BL-8164.pdf",
+    "title": "Unit price above PO price",
+    "category": "Amount mismatch + tolerance",
+    "expected": "HOLD",
+    "story": "Vendor billed $4.65/unit against a PO price of $4.20 - a $675 (10.7%) variance. Outside tolerance, so it is held with a line-level breakdown."
+  },
+  {
+    "file": "04_duplicate_brightline_BL7781.pdf",
+    "title": "Resubmitted invoice (already paid)",
+    "category": "Duplicate / near-duplicate",
+    "expected": "REJECT",
+    "story": "Sent again as a 'payment reminder' with the number written BL7781 and a European date. Already paid as BL-7781 - normalised fingerprint catches it."
+  },
+  {
+    "file": "05_split_po_meridian_MCG-2026-044.pdf",
+    "title": "Milestone 2 of 3 on a split PO",
+    "category": "Split PO / partial billing",
+    "expected": "APPROVE",
+    "story": "Second milestone against a $30,000 PO that already has $12,000 billed. Fits the remaining balance, so it approves and the PO drops to $6,000 remaining."
+  },
+  {
+    "file": "06_split_po_overbill_meridian_MCG-2026-052.pdf",
+    "title": "Final milestone exceeds PO balance",
+    "category": "Split PO / partial billing",
+    "expected": "HOLD",
+    "story": "Phase 3 plus an out-of-scope 'data migration' line. Cumulative billing would exceed the $30,000 PO by $3,000 - held for a PO change order. (Run after sample 05.)"
+  },
+  {
+    "file": "07_missing_po_cobalt_CO-55190.pdf",
+    "title": "No PO reference - inferred from lines",
+    "category": "Missing PO / unknown vendor",
+    "expected": "APPROVE",
+    "story": "No PO number anywhere on the invoice. The vendor has two open POs; line items and amount match PO-4505 uniquely, so the PO is inferred with high confidence."
+  },
+  {
+    "file": "08_unknown_vendor_tidewater_TWL-0091.pdf",
+    "title": "Vendor not in vendor master",
+    "category": "Missing PO / unknown vendor",
+    "expected": "HOLD",
+    "story": "Looks legitimate, but Tidewater Logistics has never been onboarded and PO-4509 does not exist. Routed to procurement for vendor onboarding before any payment."
+  },
+  {
+    "file": "09_blocked_vendor_quillon_QP-3310.pdf",
+    "title": "Vendor is blocked in master data",
+    "category": "Missing PO / unknown vendor",
+    "expected": "REJECT",
+    "story": "Quillon Print Co. is on the vendor master but blocked (failed bank verification). No PO. Rejected outright."
+  },
+  {
+    "file": "10_missing_fields_apex.pdf",
+    "title": "No invoice number or date",
+    "category": "Missing data",
+    "expected": "HOLD",
+    "story": "Pro-forma style document: PO matches perfectly but there is no invoice number and no date, so it cannot be booked. Held with a request to the vendor."
+  },
+  {
+    "file": "11_scanned_harbor_HFS-11-2026.pdf",
+    "title": "Scanned paper invoice (image-only PDF)",
+    "category": "Scanned input",
+    "expected": "APPROVE",
+    "story": "No text layer at all - a photocopied page. Text is recovered with OCR (Gemini vision online, Tesseract offline) and then flows through the same rules."
+  },
+  {
+    "file": "12_photo_harbor_HFS-PC-0412.png",
+    "title": "Phone photo of an invoice (PNG)",
+    "category": "Scanned input",
+    "expected": "APPROVE",
+    "story": "A slightly skewed phone photo emailed in as a PNG. Same OCR path; PO-4508 matches exactly."
+  },
+  {
+    "file": "13_india_gst_sahyadri_SPP-0418.pdf",
+    "title": "Indian GST invoice (INR, CGST/SGST)",
+    "category": "Other formats",
+    "expected": "APPROVE",
+    "story": "Different country, different layout: HSN column, CGST + SGST instead of one tax line, lakh digit grouping, DD/MM date, a 'Total' row with a quantity before the amount, and a grand total with no paise."
+  }
+]

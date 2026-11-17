@@ -1,0 +1,12 @@
+po_number,vendor_id,issue_date,status,currency,tax_rate,description,total_amount
+PO-4499,V002,2026-09-15,closed,USD,0.00,Connector kits Q3,4312.50
+PO-4501,V001,2026-10-20,open,USD,0.08,PPE restock - Plant 2,6390.00
+PO-4502,V002,2026-10-22,open,USD,0.00,Sensor housings batch 11,8400.00
+PO-4503,V002,2026-10-25,open,USD,0.00,Sensor housings batch 12,6300.00
+PO-4504,V003,2026-09-30,open,USD,0.00,ERP rollout advisory - 3 phases,30000.00
+PO-4505,V004,2026-10-28,open,USD,0.0725,Ergonomic desk refresh - Finance floor,7740.00
+PO-4506,V004,2026-11-02,open,USD,0.0725,Meeting room supplies,1185.00
+PO-4507,V005,2026-10-01,open,USD,0.00,Janitorial services - November,3250.00
+PO-4508,V005,2026-10-01,open,USD,0.00,Quarterly pest control,640.00
+PO-4510,V001,2026-11-05,open,USD,0.08,Warehouse shelving,2980.00
+PO-4511,V007,2026-10-26,open,INR,0.18,Shipping cartons & tape - Pune plant,104500.00

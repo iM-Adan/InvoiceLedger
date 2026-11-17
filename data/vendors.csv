@@ -1,0 +1,8 @@
+vendor_id,name,aliases,status,payment_terms_days,currency,tax_id,contact_email
+V001,Apex Industrial Supply,Apex Industrial|Apex Industrial Supply Co.|APEX IND SUPPLY,approved,30,USD,US-84-2219031,ar@apexindustrial.example
+V002,Brightline Components Ltd,Brightline Components|Brightline,approved,45,USD,US-47-1180344,billing@brightline.example
+V003,Meridian Consulting Group,Meridian Consulting|MCG,approved,30,USD,US-93-5520117,finance@meridiancg.example
+V004,Cobalt Office Solutions,Cobalt Office|Cobalt Office Solutions Inc.,approved,30,USD,US-26-7741902,invoices@cobaltoffice.example
+V005,Harbor Facility Services,Harbor Facility|Harbor Facilities,approved,15,USD,US-58-3307716,accounts@harborfs.example
+V006,Quillon Print Co.,Quillon Print|Quillon Printing,blocked,30,USD,US-61-9902245,billing@quillonprint.example
+V007,Sahyadri Packaging Pvt Ltd,Sahyadri Packaging|Sahyadri Packaging Private Limited,approved,30,INR,27AAHCS4821K1Z6,accounts@sahyadripack.example

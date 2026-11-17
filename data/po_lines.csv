@@ -1,0 +1,18 @@
+po_number,line_no,description,quantity,unit_price,billing_type
+PO-4499,1,Connector kit CK-220,250,17.25,quantity
+PO-4501,1,Nitrile safety gloves (box of 100),120,18.50,quantity
+PO-4501,2,Hard hat ANSI Type II,60,32.00,quantity
+PO-4501,3,Hi-visibility vest Class 2,90,14.00,quantity
+PO-4501,4,Safety glasses anti-fog,150,6.60,quantity
+PO-4502,1,Sensor housing SH-11 aluminium,2000,4.20,quantity
+PO-4503,1,Sensor housing SH-12 aluminium,1500,4.20,quantity
+PO-4504,1,ERP rollout advisory services,1,30000.00,amount
+PO-4505,1,Height-adjustable desk 60in,12,545.00,quantity
+PO-4505,2,Ergonomic task chair,12,100.00,quantity
+PO-4506,1,Whiteboard 6x4 magnetic,3,215.00,quantity
+PO-4506,2,Conference speakerphone,2,270.00,quantity
+PO-4507,1,Janitorial services - monthly,1,3250.00,amount
+PO-4508,1,Pest control service - quarterly,1,640.00,amount
+PO-4510,1,Steel shelving unit 72in,20,149.00,quantity
+PO-4511,1,Corrugated carton 5-ply 18x12x12in,2000,42.50,quantity
+PO-4511,2,BOPP packing tape 48mm x 65m,300,65.00,quantity

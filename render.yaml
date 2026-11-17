@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: invoiceflow
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false          # paste your key in the Render dashboard
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: TODAY
+        value: "2026-11-17"  # pins date checks so the demo set behaves the same any day; remove for real use
