@@ -464,9 +464,10 @@ async function renderPOs(v) {
     label: `${k === "ALL" ? "All POs" : k === "SETTLED" ? "Settled" : "Not settled"}<span class="count" data-po-count="${k}"></span>`,
   })), state.poFilter, (k) => { state.poFilter = k; draw(); });
   v.innerHTML = `
-    <div class="head"><div><h1>Purchase orders</h1><p>Each approved invoice draws down its PO's remaining balance. A PO is settled when all its invoices are marked paid.</p></div></div>
-    <div class="surface">
-      <div class="toolbar">${filter.html}</div>
+    <div class="head po-head"><div><h1>Purchase orders</h1><p>Track committed spend, invoice drawdown, and payment status in one place.</p></div></div>
+    <div class="po-summary" id="po-summary"></div>
+    <div class="surface po-surface">
+      <div class="toolbar po-toolbar"><div><strong>All purchase orders</strong><span class="faint small">Expand a row to review lines and invoices</span></div><span class="spacer"></span>${filter.html}</div>
       <div class="po-list" id="po-list"></div>
     </div>`;
   filter.mount();
@@ -478,16 +479,24 @@ async function renderPOs(v) {
       SETTLED: pos.filter((p) => p.settled).length,
       UNSETTLED: pos.filter((p) => !p.settled).length,
     };
+    const total = pos.reduce((sum, p) => sum + (Number(p.total_amount) || 0), 0);
+    const billed = pos.reduce((sum, p) => sum + (Number(p.billed) || 0), 0);
+    const remaining = pos.reduce((sum, p) => sum + Math.max(0, Number(p.remaining) || 0), 0);
+    $("#po-summary").innerHTML = `
+      <div class="po-stat"><span class="po-stat-icon">${I.check}</span><div><strong>${counts.ALL}</strong><span>Total POs</span></div></div>
+      <div class="po-stat"><span class="po-stat-icon po-stat-warn">${I.pause}</span><div><strong>${counts.UNSETTLED}</strong><span>Not settled</span></div></div>
+      <div class="po-stat"><span class="po-stat-icon po-stat-blue">${I.up}</span><div><strong>${money(remaining, pos[0]?.currency || "USD")}</strong><span>Remaining balance</span></div></div>
+      <div class="po-stat"><span class="po-stat-icon po-stat-neutral">${I.info}</span><div><strong>${money(billed, pos[0]?.currency || "USD")}</strong><span>of ${money(total, pos[0]?.currency || "USD")} billed</span></div></div>`;
     $$("[data-po-count]").forEach((el) => { el.textContent = counts[el.dataset.poCount]; });
     const visible = pos.filter((p) => state.poFilter === "ALL" ||
       (state.poFilter === "SETTLED" ? p.settled : !p.settled));
     $("#po-list").innerHTML = visible.length ? visible.map((p) => {
       const pct = p.total_amount ? Math.min(100, (100 * p.billed) / p.total_amount) : 0;
       return `<div class="po${expanded.has(p.po_number) ? " open" : ""}" data-po="${esc(p.po_number)}">
-        <div class="po-row"><div class="pn">${esc(p.po_number)}<span class="chip ${p.settled ? "paid" : "unpaid"} po-settlement">${p.settled ? "Settled" : "Not settled"}</span>${p.status !== "open" ? `<span class="closed-tag">${esc(p.status)}</span>` : ""}</div>
-          <div><div style="font-weight:550">${esc(p.vendor_name)}</div><div class="desc">${esc(p.description)}</div></div>
-          <div class="bal"><div class="balance"><div class="track"><i class="this" data-w="${pct}%" style="${p.remaining <= 0.01 ? "background:#b9c1cb" : ""}"></i></div></div><div class="small faint" style="margin-top:6px">${Math.round(pct)}% billed</div></div>
-          <div class="amt">${p.remaining < -0.005 ? `<b class="over">${money(-p.remaining, p.currency)} over</b>within tolerance` : `<b>${money(p.remaining, p.currency)}</b>left of ${money(p.total_amount, p.currency)}`}</div>${I.chev}</div>
+        <div class="po-row"><div class="pn"><span class="po-number">${esc(p.po_number)}</span><span class="chip ${p.settled ? "paid" : "unpaid"} po-settlement">${p.settled ? "Settled" : "Not settled"}</span>${p.status !== "open" ? `<span class="closed-tag">${esc(p.status)}</span>` : ""}</div>
+          <div class="po-vendor"><div class="vendor-name">${esc(p.vendor_name)}</div><div class="desc">${esc(p.description)}</div></div>
+          <div class="bal"><div class="po-label">Billed</div><div class="balance"><div class="track"><i class="this${p.remaining <= 0.01 ? " complete" : ""}" data-w="${pct}%"></i></div></div><div class="balance-meta"><span>${Math.round(pct)}% used</span><span>${money(p.billed, p.currency)}</span></div></div>
+          <div class="amt">${p.remaining < -0.005 ? `<b class="over">${money(-p.remaining, p.currency)} over</b><span>within tolerance</span>` : `<b>${money(p.remaining, p.currency)}</b><span>remaining of ${money(p.total_amount, p.currency)}</span>`}</div>${I.chev}</div>
         <div class="collapse"><div><div class="po-detail">
           <div class="tablewrap"><table><tr><th>Line</th><th class="r">Qty</th><th class="r">Unit price</th><th class="r">Line total</th></tr>
           ${p.lines.map((l) => `<tr><td>${esc(l.description)}</td><td class="r">${l.billing_type === "amount" ? "—" : num(l.quantity)}</td><td class="r">${l.billing_type === "amount" ? '<span class="faint">Milestone</span>' : money(l.unit_price, p.currency)}</td><td class="r">${money(l.line_total, p.currency)}</td></tr>`).join("")}</table></div>
